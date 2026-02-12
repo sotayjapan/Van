@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Edit Bill - Nguyen Van Nam</title>
+    <style>
+        :root {
+            --momo-pink: #D82D8B;
+            --bg-body: #f0f2f5;
+        }
+        body { font-family: -apple-system, sans-serif; background: var(--bg-body); display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .editor-container { background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+        canvas { width: 100%; height: auto; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ddd; }
+        .input-item { margin-bottom: 12px; }
+        label { display: block; font-size: 13px; color: #727272; margin-bottom: 5px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-update { background: var(--momo-pink); color: white; }
+        .btn-download { background: #303233; color: white; }
+        button:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+<div class="editor-container">
+    <canvas id="billCanvas"></canvas>
+    
+    <div class="input-item">
+        <label>Tên người nhận (Uppercase #565656):</label>
+        <input type="text" id="nameInput" value="NGUYEN VAN NAM">
+    </div>
+    
+    <div class="input-item">
+        <label>Số tiền (Default #303233):</label>
+        <input type="text" id="amountInput" value="800.000">
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-update" onclick="draw()">Cập nhật</button>
+        <button class="btn-download" onclick="download()">Tải ảnh về</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('billCanvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+
+    // Load ảnh gốc từ thư mục của bạn
+    img.src = 'image.png'; 
+
+    img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        draw();
+    };
+
+    function draw() {
+        const name = document.getElementById('nameInput').value.toUpperCase();
+        const amount = document.getElementById('amountInput').value;
+        
+        // 1. Lấy giờ Việt Nam hiện tại
+        const now = new Date();
+        const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                        now.getMinutes().toString().padStart(2, '0');
+
+        // 2. Vẽ lại ảnh gốc làm nền
+        ctx.drawImage(img, 0, 0);
+
+        // --- PHẦN FAKE HỆ THỐNG ---
+        
+        // Vẽ đè giờ (Tọa độ x=120, y=55 tùy thuộc vào ảnh gốc của bạn)
+        ctx.fillStyle = "#fdeff4"; // Màu nền header
+        ctx.fillRect(50, 20, 120, 50); 
+        ctx.font = "bold 32px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#000000";
+        ctx.fillText(timeStr, 75, 55);
+
+        // Vẽ đè Pin (95%)
+        ctx.fillStyle = "#fdeff4";
+        ctx.fillRect(canvas.width - 120, 20, 60, 50);
+        ctx.font = "bold 26px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#000000";
+        ctx.fillText("95", canvas.width - 110, 52);
+
+        // --- PHẦN NỘI DUNG BILL ---
+
+        // Xóa & Ghi đè Tên (Màu #565656)
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(55, 315, 550, 45); 
+        ctx.font = "bold 34px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#565656"; 
+        ctx.fillText(name, 60, 350);
+
+        // Xóa & Ghi đè Số tiền (Màu #303233)
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(55, 415, 450, 65);
+        ctx.font = "bold 56px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#303233";
+        ctx.fillText(amount, 60, 465);
+
+        // Vẽ ký hiệu 'đ' nhỏ sau số tiền
+        let width = ctx.measureText(amount).width;
+        ctx.font = "34px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#B9B9B9"; // Disabled color
+        ctx.fillText("đ", 75 + width, 460);
+    }
+
+    function download() {
+        const link = document.createElement('a');
+        link.download = `bill_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+</script>
+
+</body>
+</html>
