@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Quản lý Giao dịch - Dev Nguyen Van Nam</title>
+    <style>
+        /* CSS Reset & Variable */
+        :root {
+            --momo-pink: #D82D8B;
+            --default-text: #303233;
+            --hint-text: #727272;
+            --bg-light: #f4f4f7;
+            --shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+        }
+
+        .main-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 25px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        /* Vùng hiển thị ảnh */
+        .preview-section {
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 20px;
+            text-align: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* Vùng điều khiển */
+        .control-panel {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            height: fit-content;
+        }
+
+        h2 { color: var(--momo-pink); font-size: 20px; margin-top: 0; border-bottom: 2px solid var(--bg-light); padding-bottom: 10px; }
+
+        .input-group { margin-bottom: 18px; }
+        label { display: block; font-size: 13px; font-weight: 600; color: var(--hint-text); margin-bottom: 6px; }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+            box-sizing: border-box;
+        }
+
+        input:focus { border-color: var(--momo-pink); outline: none; box-shadow: 0 0 5px rgba(216, 45, 139, 0.2); }
+
+        .btn-action {
+            width: 100%;
+            padding: 14px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-update { background: var(--momo-pink); color: white; }
+        .btn-download { background: var(--default-text); color: white; margin-top: 15px; }
+        .btn-action:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .status-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="preview-section">
+        <canvas id="billCanvas"></canvas>
+        <div class="status-tag">Renderer: San Francisco Engine v2.0</div>
+    </div>
+
+    <div class="control-panel">
+        <h2>Cấu hình Bill MoMo</h2>
+        
+        <div class="input-group">
+            <label>SỐ TÀI KHOẢN (29999...):</label>
+            <input type="text" id="stkInput" placeholder="Nhập số tài khoản" value="2999988882007">
+        </div>
+
+        <div class="input-group">
+            <label>TÊN NGƯỜI NHẬN (UPPERCASE):</label>
+            <input type="text" id="nameInput" placeholder="Nhập tên người nhận" value="NGUYEN VAN NAM">
+        </div>
+
+        <div class="input-group">
+            <label>SỐ TIỀN (VNĐ):</label>
+            <input type="text" id="amountInput" placeholder="Ví dụ: 800.000" value="800.000">
+        </div>
+
+        <div class="input-group">
+            <label>PHẦN TRĂM PIN (%):</label>
+            <input type="number" id="pinInput" value="95">
+        </div>
+
+        <div class="input-group">
+            <label>MÃ QUÀ (CỐ ĐỊNH):</label>
+            <input type="text" value="QUAUUDAIB88" disabled style="background: #f0f0f0;">
+        </div>
+
+        <button class="btn-action btn-update" onclick="renderBill()">CẬP NHẬT GIAO DIỆN</button>
+        <button class="btn-action btn-download" onclick="exportImage()">TẢI FILE ẢNH (.PNG)</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('billCanvas');
+    const ctx = canvas.getContext('2d');
+    const baseImg = new Image();
+
+    // 1. Khởi tạo ảnh gốc
+    baseImg.src = 'image.png'; // Đảm bảo file này cùng thư mục
+    baseImg.onload = () => {
+        canvas.width = baseImg.width;
+        canvas.height = baseImg.height;
+        renderBill();
+    };
+
+    // 2. Hàm vẽ chính (Core Rendering Engine)
+    function renderBill() {
+        // Lấy dữ liệu từ UI
+        const stk = document.getElementById('stkInput').value;
+        const name = document.getElementById('nameInput').value.toUpperCase();
+        const amount = document.getElementById('amountInput').value;
+        const pinValue = document.getElementById('pinInput').value;
+
+        // Xử lý thời gian tự động (Giờ VN)
+        const now = new Date();
+        const timeStr = String(now.getHours()).padStart(2, '0') + ':' + 
+                        String(now.getMinutes()).padStart(2, '0');
+
+        // Vẽ lớp nền sạch
+        ctx.drawImage(baseImg, 0, 0);
+
+        // --- SECTION 1: HEADER (Giờ & Pin) ---
+        // Xóa & Vẽ giờ
+        ctx.fillStyle = "#fdeff4"; // Màu nền hồng đặc trưng của MoMo
+        ctx.fillRect(50, 20, 150, 60); 
+        ctx.font = "bold 32px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#000000";
+        ctx.fillText(timeStr, 70, 58);
+
+        // Xóa & Vẽ Pin
+        ctx.fillStyle = "#fdeff4";
+        ctx.fillRect(canvas.width - 120, 25, 60, 50);
+        ctx.font = "bold 26px 'San Francisco', sans-serif";
+        ctx.fillText(pinValue, canvas.width - 110, 55);
+
+        // --- SECTION 2: TÀI KHOẢN (Ô 2999...) ---
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(55, 240, 600, 45); // Tọa độ y khớp với ảnh gốc
+        ctx.font = "bold 32px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#303233"; // Màu Default
+        ctx.fillText(stk, 60, 275);
+
+        // --- SECTION 3: TÊN NGƯỜI NHẬN ---
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(55, 328, 600, 42); 
+        ctx.font = "bold 30px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#565656"; // Màu Uppercase
+        ctx.fillText(name, 60, 362);
+
+        // --- SECTION 4: SỐ TIỀN ---
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(55, 425, 500, 65);
+        ctx.font = "bold 54px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#303233";
+        ctx.fillText(amount, 60, 475);
+        
+        let w = ctx.measureText(amount).width;
+        ctx.font = "32px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#B9B9B9"; // Màu Infor/Disabled
+        ctx.fillText("đ", 75 + w, 470);
+
+        // --- SECTION 5: MÃ QUÀ (QUAUUDAIB88) ---
+        // Xóa dòng 'NGUYEN VAN NAM chuyen tien qua MoMo'
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(55, 520, 650, 40); 
+        ctx.font = "30px 'San Francisco', sans-serif";
+        ctx.fillStyle = "#727272"; // Màu Hint
+        ctx.fillText("QUAUUDAIB88", 60, 552);
+    }
+
+    // 3. Hàm xuất file ảnh
+    function exportImage() {
+        const link = document.createElement('a');
+        const fileName = `Bill_MoMo_${Date.now()}.png`;
+        link.download = fileName;
+        link.href = canvas.toDataURL('image/png', 1.0);
+        link.click();
+    }
+</script>
+
+</body>
+</html>
